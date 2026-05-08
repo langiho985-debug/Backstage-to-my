@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 관극</title>
+
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: sans-serif; background: #f5f5f5; padding: 15px; padding-bottom: 80px; }
+h1 { margin: 10px 0; font-size: 22px; }
+button { padding: 12px; margin: 6px 0; border: none; border-radius: 8px; background: #ff6b6b; color: white; font-size: 15px; cursor: pointer; width: 100%; }
+button:hover { background: #ff5252; }
+.card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 15px; overflow: hidden; }
+.card-body { padding: 14px; }
+label { display: block; margin: 8px 0 4px; font-size: 13px; color: #444; }
+input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; }
+input:focus, select:focus { outline: none; border-color: #ff6b6b; box-shadow: 0 0 0 3px rgba(255,107,107,0.12); }
+.field-row { display: flex; gap: 10px; }
+.field-row input { flex: 1; }
+.match-list { margin: 10px 0; padding: 12px; background: #fff8e1; border-radius: 10px; border: 1px solid #ffe082; }
+.match-item { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 10px; border-radius: 8px; border: 1px solid transparent; transition: background .2s, border-color .2s; }
+.match-item:first-of-type { margin-top: 0; }
+.match-item:hover { background: #fff2d8; }
+.match-item.selected { background: #fff1f0; border-color: #ffb6a0; }
+.match-item button { width: auto; padding: 8px 12px; background: #ff9f43; border: none; border-radius: 8px; color: white; }
+.small-note { font-size: 12px; color: #666; margin-top: 6px; }
+.entry-card { border-top: 1px solid #f0f0f0; }
+.entry-card summary { list-style: none; padding: 14px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; cursor: pointer; }
+.entry-card summary::-webkit-details-marker { display: none; }
+.entry-card details { border-top: 1px solid #f0f0f0; }
+.entry-card .details-body { padding: 12px 14px 18px; }
+.entry-row { margin-bottom: 8px; font-size: 14px; }
+.entry-row span { font-weight: 600; }
+.entry-actions { display: flex; gap: 8px; margin-top: 12px; }
+.entry-actions button { flex: 1; padding: 10px; font-size: 13px; background: #4CAF50; width: auto; }
+.entry-actions button:first-child { background: #2196F3; }
+.entry-actions button:last-child { background: #f44336; }
+.entry-actions button:first-child:hover { background: #0b7dda; }
+.entry-actions button:last-child:hover { background: #da190b; }
+.form-title { color: #ff6b6b; margin-bottom: 10px; font-weight: bold; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 200; }
+.modal.show { display: flex; }
+.modal-content { width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; background: white; border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.2); padding: 20px; position: relative; }
+.modal-content h3 { margin-top: 0; }
+.close-btn { position: absolute; top: 14px; right: 14px; border: none; background: #ff6b6b; color: white; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; align-items: center; height: 60px; background: white; border-top: 1px solid #ddd; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); z-index: 100; }
+.nav-item { flex: 1; text-align: center; text-decoration: none; padding: 10px; font-size: 11px; color: #666; transition: background .2s; }
+.nav-item.active { color: #ff6b6b; font-weight: bold; border-bottom: 3px solid #ff6b6b; }
+.nav-item:hover { background: #fafafa; }
+@media (max-width: 480px) { h1 { font-size: 20px; } .field-row { flex-direction: column; } }
+</style>
+</head>
+<body>
+
+<h1>🎬 관극</h1>
+
+<div class="card">
+  <div class="card-body">
+    <label for="perfTitle">공연명</label>
+    <input id="perfTitle" placeholder="공연명 입력" oninput="updateMatchingStampBoards()" />
+
+    <label>관극 상태</label>
+    <div style="display:flex; gap:20px; margin:8px 0;">
+      <label style="display:flex; align-items:center; gap:5px;">
+        <input type="radio" name="watchStatus" value="planned" checked />
+        <span>예정</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:5px;">
+        <input type="radio" name="watchStatus" value="watched" />
+        <span>관극</span>
+      </label>
+    </div>
+
+    <label for="perfType">종류</label>
+    <select id="perfType">
+      <option value="뮤지컬">뮤지컬</option>
+      <option value="연극">연극</option>
+      <option value="음악극">음악극</option>
+    </select>
+
+    <div class="field-row">
+      <div style="flex:1">
+        <label for="perfDate">일정</label>
+        <input id="perfDate" type="date" />
+      </div>
+      <div style="flex:1">
+        <label for="perfTime">시간</label>
+        <input id="perfTime" type="time" />
+      </div>
+    </div>
+
+    <label for="perfCasting">캐스팅</label>
+    <input id="perfCasting" placeholder="배우1, 배우2, 배우3 (쉼표로 구분)" />
+
+    <label for="perfEvent">이벤트</label>
+    <input id="perfEvent" placeholder="이벤트 입력" />
+
+    <label for="perfStampCount">도장 갯수</label>
+    <input id="perfStampCount" type="number" min="0" placeholder="도장 갯수 입력" />
+
+    <label for="perfComment">코멘트</label>
+    <input id="perfComment" placeholder="코멘트 입력" />
+
+    <label for="perfAttachment">내역서 이미지</label>
+    <input id="perfAttachment" type="file" accept="image/*" onchange="handleAttachmentFile()" />
+    <div id="attachmentNote" class="small-note" style="display:none;"></div>
+
+    <div id="matchSection" class="match-list" style="display:none;"></div>
+    <div id="selectedBoardInfo" class="small-note" style="display:none;"></div>
+    <button type="button" onclick="createStampBoard()" style="background:#f29e2e;">➕ 도장판 생성</button>
+    <div id="formTitle" class="form-title" style="display:none;"></div>
+
+    <button onclick="saveWatchEntry()">관극 기록 저장</button>
+    <button id="cancelEditBtn" style="display:none; background: #999;" onclick="cancelEdit()">수정 취소</button>
+  </div>
+</div>
+
+<div id="watchList"></div>
+
+<div id="attachmentModal" class="modal">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeAttachmentModal()">닫기</button>
+    <h3 id="attachmentModalTitle">내역서</h3>
+    <img id="attachmentImage" src="" alt="내역서 이미지" style="width:100%; border-radius:12px; margin-top:12px; display:block;" />
+  </div>
+</div>
+
+<div class="nav-bar">
+  <a href="schedule.html" class="nav-item">📅 관극 일정</a>
+  <span class="nav-item active">🎬 관극</span>
+  <a href="entry.html" class="nav-item">🎭 도장판</a>
+  <a href="actor.html" class="nav-item">👤 배우</a>
+  <a href="settings.html" class="nav-item">⚙️ 설정</a>
+</div>
+
+<script>
+let editingEntryId = null;
+let currentAttachment = null;
+
+function getStampData() {
+  return JSON.parse(localStorage.getItem('stampData')) || {};
+}
+
+function getFileData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleAttachmentFile() {
+  const input = document.getElementById('perfAttachment');
+  const note = document.getElementById('attachmentNote');
+  const file = input.files[0];
+  if (!file) {
+    currentAttachment = null;
+    note.style.display = 'none';
+    note.textContent = '';
+    return;
+  }
+
+  const maxBytes = 1024 * 1024; // 1MB
+  if (file.size > maxBytes) {
+    alert('이미지 파일이 너무 큽니다. 1MB 이하의 이미지를 선택해주세요.');
+    input.value = '';
+    currentAttachment = null;
+    note.style.display = 'none';
+    note.textContent = '';
+    return;
+  }
+
+  currentAttachment = { name: file.name, file };
+  note.style.display = 'block';
+  note.textContent = `선택된 내역서: ${file.name}`;
+}
+
+function getWatchData() {
+  return JSON.parse(localStorage.getItem('watchData')) || [];
+}
+
+function saveWatchData(data) {
+  localStorage.setItem('watchData', JSON.stringify(data));
+}
+
+function saveStampData(data) {
+  localStorage.setItem('stampData', JSON.stringify(data));
+}
+
+function getUniqueBoardTitle(title, stampData) {
+  if (!stampData[title]) return title;
+
+  let i = 2;
+  while (stampData[`${title} (${i})`]) i++;
+  return `${title} (${i})`;
+}
+
+function createStampBoard() {
+  const title = document.getElementById('perfTitle').value.trim();
+  if (!title) return alert('공연명을 입력해주세요. 먼저 공연명을 입력한 뒤 도장판을 생성하세요.');
+
+  const stampData = getStampData();
+  const newTitle = getUniqueBoardTitle(title, stampData);
+  const maxCountInput = prompt('최종 도장 수를 입력하세요.', '10');
+  const maxCount = parseInt(maxCountInput, 10);
+  if (!maxCount || maxCount <= 0) return alert('최종 도장 수는 1 이상의 숫자여야 합니다.');
+
+  stampData[newTitle] = {
+    date: document.getElementById('perfDate').value || '',
+    midRewards: [
+      { count: 0, item: '', rewardCount: 0 },
+      { count: 0, item: '', rewardCount: 0 }
+    ],
+    maxCount,
+    maxReward: [{ item: '', count: 0 }, { item: '', count: 0 }],
+    stamps: []
+  };
+
+  saveStampData(stampData);
+  selectStampBoard(encodeURIComponent(newTitle));
+  updateMatchingStampBoards();
+  alert(`도장판 "${newTitle}"이(가) 생성되었습니다.`);
+}
+
+function getBaseTitle(title) {
+  let match = title.match(/^(.*) \((\d+)\)$/);
+  return match ? match[1] : title;
+}
+
+function getBoardCurrentCount(board) {
+  if (!board.stamps || !board.stamps.length) return 0;
+  return board.stamps.reduce((sum, s) => sum + (parseInt(s.count) || 1), 0);
+}
+
+function createNextStampBoard(stampData, oldBoardKey, dateValue) {
+  const oldBoard = stampData[oldBoardKey];
+  if (!oldBoard) return null;
+
+  const baseTitle = getBaseTitle(oldBoardKey);
+  const newTitle = getUniqueBoardTitle(baseTitle, stampData);
+  stampData[newTitle] = {
+    date: dateValue || oldBoard.date || '',
+    midRewards: oldBoard.midRewards || [
+      { count: 0, item: '', rewardCount: 0 },
+      { count: 0, item: '', rewardCount: 0 }
+    ],
+    maxCount: oldBoard.maxCount || 10,
+    maxReward: oldBoard.maxReward || [{ item: '', count: 0 }, { item: '', count: 0 }],
+    stamps: []
+  };
+  saveStampData(stampData);
+  alert(`도장판이 가득 차서 새 도장판 "${newTitle}"이 생성되었습니다.`);
+  return newTitle;
+}
+
+function updateMatchingStampBoards() {
+  const input = document.getElementById('perfTitle').value.trim();
+  const matchSection = document.getElementById('matchSection');
+  const stampData = getStampData();
+  if (!input) {
+    matchSection.style.display = 'none';
+    matchSection.innerHTML = '';
+    return;
+  }
+
+  const matches = Object.keys(stampData).filter(key => getBaseTitle(key) === input || key === input);
+  if (!matches.length) {
+    matchSection.style.display = 'none';
+    matchSection.innerHTML = '';
+    return;
+  }
+
+  let html = '<strong>연관된 도장판</strong><div class="small-note">같은 공연명을 가진 도장판을 선택하면 연결됩니다.</div>';
+  html += matches.map(key => {
+    const board = stampData[key];
+    const currentCount = getBoardCurrentCount(board);
+    return `<div class="match-item" id="match-${encodeURIComponent(key)}" onclick="selectStampBoard('${encodeURIComponent(key)}')"><div>${key} (최종 ${board.maxCount} / 현재 ${currentCount})</div><button type="button">선택</button></div>`;
+  }).join('');
+
+  matchSection.style.display = 'block';
+  matchSection.innerHTML = html;
+  updateSelectedBoardUI();
+}
+
+function selectStampBoard(keyEncoded) {
+  const key = decodeURIComponent(keyEncoded);
+  if (!document.getElementById('selectedBoard')) {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.id = 'selectedBoard';
+    document.body.appendChild(hidden);
+  }
+  document.getElementById('selectedBoard').value = key;
+  updateSelectedBoardUI();
+}
+
+function updateSelectedBoardUI() {
+  const selectedKey = document.getElementById('selectedBoard')?.value || '';
+  const matchSection = document.getElementById('matchSection');
+  const selectedInfo = document.getElementById('selectedBoardInfo');
+  const items = matchSection.querySelectorAll('.match-item');
+
+  items.forEach(item => {
+    item.classList.toggle('selected', item.id === `match-${encodeURIComponent(selectedKey)}`);
+  });
+
+  if (selectedKey) {
+    selectedInfo.style.display = 'block';
+    selectedInfo.textContent = `선택된 도장판: ${selectedKey}`;
+  } else {
+    selectedInfo.style.display = 'none';
+    selectedInfo.textContent = '';
+  }
+}
+
+async function saveWatchEntry() {
+  const title = document.getElementById('perfTitle').value.trim();
+  if (!title) return alert('공연명을 입력해주세요.');
+
+  const selectedBoard = document.getElementById('selectedBoard')?.value || '';
+  const stampCount = parseInt(document.getElementById('perfStampCount').value) || 0;
+  const comment = document.getElementById('perfComment').value.trim();
+
+  const watchData = getWatchData();
+  const previousEntry = editingEntryId ? watchData.find(e => e.id === editingEntryId) : null;
+
+  let attachmentName = previousEntry?.attachmentName || '';
+  let attachmentData = previousEntry?.attachmentData || '';
+  const attachmentInput = document.getElementById('perfAttachment');
+  if (attachmentInput.files && attachmentInput.files.length > 0) {
+    const attachmentFile = attachmentInput.files[0];
+    attachmentName = attachmentFile.name;
+    attachmentData = await getFileData(attachmentFile);
+  }
+
+  const entry = {
+    id: editingEntryId || Date.now(),
+    title,
+    type: document.getElementById('perfType').value,
+    date: document.getElementById('perfDate').value,
+    time: document.getElementById('perfTime').value,
+    casting: document.getElementById('perfCasting').value.trim(),
+    event: document.getElementById('perfEvent').value.trim(),
+    status: document.querySelector('input[name="watchStatus"]:checked').value,
+    stampBoard: selectedBoard,
+    stampCount,
+    comment,
+    attachmentName,
+    attachmentData,
+    createdAt: previousEntry ? previousEntry.createdAt : new Date().toISOString()
+  };
+
+  const stampData = getStampData();
+
+  function removeLinkedStamp(boardKey, syncId) {
+    if (!boardKey || !stampData[boardKey] || !Array.isArray(stampData[boardKey].stamps)) return;
+    const stamps = stampData[boardKey].stamps;
+    const removeIndex = stamps.findIndex(s => s.syncId === syncId || s.comment === '관극 기록 연동');
+    if (removeIndex !== -1) {
+      stamps.splice(removeIndex, 1);
+      stampData[boardKey].stamps = stamps;
+      saveStampData(stampData);
+    }
+  }
+
+  function ensureStampBoard(boardKey) {
+    if (!boardKey) return;
+    if (!stampData[boardKey]) {
+      stampData[boardKey] = {
+        date: entry.date || '',
+        midRewards: [
+          { count: 0, item: '', rewardCount: 0 },
+          { count: 0, item: '', rewardCount: 0 }
+        ],
+        maxCount: Math.max(entry.stampCount || 1, 10),
+        maxReward: [{ item: '', count: 0 }, { item: '', count: 0 }],
+        stamps: []
+      };
+    }
+  }
+
+  if (previousEntry && previousEntry.stampBoard && previousEntry.stampBoard !== selectedBoard) {
+    removeLinkedStamp(previousEntry.stampBoard, previousEntry.id);
+  }
+
+  if (selectedBoard && stampCount > 0) {
+    ensureStampBoard(selectedBoard);
+    let board = stampData[selectedBoard];
+    const currentCount = getBoardCurrentCount(board);
+    if (currentCount + stampCount > board.maxCount) {
+      const newBoardKey = createNextStampBoard(stampData, selectedBoard, entry.date);
+      if (newBoardKey) {
+        selectedBoard = newBoardKey;
+        entry.stampBoard = selectedBoard;
+        selectStampBoard(encodeURIComponent(newBoardKey));
+      }
+      board = stampData[selectedBoard];
+      ensureStampBoard(selectedBoard);
+    }
+    board.stamps = board.stamps || [];
+    const existingIndex = board.stamps.findIndex(s => s.syncId === entry.id);
+    const stampEntry = {
+      syncId: entry.id,
+      date: entry.date || '',
+      round: entry.time || '',
+      count: stampCount,
+      comment: comment || '관극 기록 연동',
+      status: entry.status || 'watched'
+    };
+    if (existingIndex !== -1) {
+      board.stamps[existingIndex] = stampEntry;
+    } else {
+      board.stamps.push(stampEntry);
+    }
+    saveStampData(stampData);
+  } else if (previousEntry && previousEntry.stampBoard && (!selectedBoard || stampCount === 0)) {
+    removeLinkedStamp(previousEntry.stampBoard, previousEntry.id);
+  }
+
+  if (editingEntryId) {
+    const idx = watchData.findIndex(e => e.id === editingEntryId);
+    if (idx !== -1) watchData[idx] = entry;
+  } else {
+    watchData.unshift(entry);
+  }
+
+  try {
+    saveWatchData(watchData);
+  } catch (error) {
+    alert('관극 기록을 저장하는 중 오류가 발생했습니다. 이미지 용량을 줄이거나 첨부 없이 다시 시도해주세요.');
+    console.error('watchData save error:', error);
+    return;
+  }
+
+  clearWatchForm();
+  editingEntryId = null;
+  renderWatchList();
+}
+
+function clearWatchForm() {
+  document.getElementById('perfTitle').value = '';
+  document.getElementById('perfType').value = '뮤지컬';
+  document.querySelector('input[name="watchStatus"][value="planned"]').checked = true;
+  document.getElementById('perfDate').value = '';
+  document.getElementById('perfTime').value = '';
+  document.getElementById('perfCasting').value = '';
+  document.getElementById('perfEvent').value = '';
+  document.getElementById('perfStampCount').value = '';
+  document.getElementById('perfComment').value = '';
+  document.getElementById('perfAttachment').value = '';
+  currentAttachment = null;
+  document.getElementById('attachmentNote').style.display = 'none';
+  document.getElementById('attachmentNote').textContent = '';
+  document.getElementById('matchSection').style.display = 'none';
+  document.getElementById('matchSection').innerHTML = '';
+  document.getElementById('selectedBoardInfo').style.display = 'none';
+  document.getElementById('selectedBoardInfo').textContent = '';
+  document.getElementById('formTitle').style.display = 'none';
+  document.getElementById('formTitle').textContent = '';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  if (!document.getElementById('selectedBoard')) {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.id = 'selectedBoard';
+    document.body.appendChild(hidden);
+  }
+  document.getElementById('selectedBoard').value = '';
+}
+
+function editWatchEntry(id) {
+  const watchData = getWatchData();
+  const entry = watchData.find(e => e.id === id);
+  if (!entry) return;
+  
+  editingEntryId = id;
+  document.getElementById('perfTitle').value = entry.title;
+  document.getElementById('perfType').value = entry.type;
+  document.getElementById('perfDate').value = entry.date;
+  document.getElementById('perfTime').value = entry.time;
+  document.getElementById('perfCasting').value = entry.casting;
+  document.getElementById('perfEvent').value = entry.event;
+  document.querySelector(`input[name="watchStatus"][value="${entry.status || 'planned'}"]`).checked = true;
+  document.getElementById('perfStampCount').value = entry.stampCount || 0;
+  document.getElementById('perfComment').value = entry.comment;
+  document.getElementById('perfAttachment').value = '';
+  currentAttachment = null;
+
+  const attachmentNote = document.getElementById('attachmentNote');
+  if (entry.attachmentName) {
+    attachmentNote.style.display = 'block';
+    attachmentNote.textContent = `기존 내역서: ${entry.attachmentName}. 새 이미지 선택 시 교체됩니다.`;
+  } else {
+    attachmentNote.style.display = 'none';
+    attachmentNote.textContent = '';
+  }
+  
+  if (entry.stampBoard) {
+    selectStampBoard(encodeURIComponent(entry.stampBoard));
+  }
+  
+  document.getElementById('formTitle').textContent = '✏️ 관극 기록 수정';
+  document.getElementById('formTitle').style.display = 'block';
+  document.getElementById('cancelEditBtn').style.display = 'block';
+  
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+}
+
+function deleteWatchEntry(id) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+
+  const watchData = getWatchData();
+  const entry = watchData.find(e => e.id === id);
+  if (entry && entry.stampBoard) {
+    const stampData = getStampData();
+    const board = stampData[entry.stampBoard];
+    if (board && Array.isArray(board.stamps)) {
+      const idx = board.stamps.findIndex(s => s.syncId === entry.id || s.comment === '관극 기록 연동');
+      if (idx !== -1) {
+        board.stamps.splice(idx, 1);
+        stampData[entry.stampBoard] = board;
+        localStorage.setItem('stampData', JSON.stringify(stampData));
+      }
+    }
+  }
+
+  const idx = watchData.findIndex(e => e.id === id);
+  if (idx !== -1) {
+    watchData.splice(idx, 1);
+    saveWatchData(watchData);
+    renderWatchList();
+  }
+}
+
+function cancelEdit() {
+  editingEntryId = null;
+  clearWatchForm();
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+}
+
+function openAttachmentModal(id) {
+  const entry = getWatchData().find(e => e.id === id);
+  if (!entry || !entry.attachmentData) return;
+  document.getElementById('attachmentModalTitle').textContent = entry.attachmentName || '내역서';
+  document.getElementById('attachmentImage').src = entry.attachmentData;
+  document.getElementById('attachmentModal').classList.add('show');
+}
+
+function closeAttachmentModal() {
+  document.getElementById('attachmentModal').classList.remove('show');
+}
+
+function getPerformanceBaseTitle(title) {
+  let match = title.match(/^(.*) \((\d+)\)$/);
+  return match ? match[1] : title;
+}
+
+function renderWatchList() {
+  const watchData = getWatchData();
+  const container = document.getElementById('watchList');
+  if (!watchData.length) {
+    container.innerHTML = '<div class="card"><div class="card-body"><div class="small-note">아직 관극 기록이 없습니다.</div></div></div>';
+    return;
+  }
+
+  // 예정과 관극 분리
+  const plannedEntries = watchData.filter(entry => entry.status === 'planned');
+  const watchedEntries = watchData.filter(entry => entry.status !== 'planned');
+
+  let html = '';
+
+  // 예정된 관극 표시
+  if (plannedEntries.length > 0) {
+    html += '<h2 style="font-size:18px; margin:20px 0 10px; color:#ff6b6b;">📅 예정된 관극</h2>';
+    plannedEntries.forEach(entry => {
+      const stampInfo = entry.stampBoard ? `<div class="entry-row"><span>도장판:</span> ${entry.stampBoard}</div>` : '';
+      const stampCountInfo = `<div class="entry-row"><span>예상 도장 갯수:</span> ${entry.stampCount || 0}</div>`;
+      const commentInfo = entry.comment ? `<div class="entry-row"><span>코멘트:</span> ${entry.comment}</div>` : '';
+      const attachmentButton = entry.attachmentData ? `<button type="button" style="background:#ff9f43;" onclick="openAttachmentModal(${entry.id})">내역서</button>` : '';
+      html += `
+        <div class="card entry-card" style="border-left: 4px solid #ff6b6b;">
+          <details>
+            <summary>${entry.title} · ${entry.type} · ${entry.date || '날짜 미정'} ${entry.time || ''}</summary>
+            <div class="details-body">
+              <div class="entry-row"><span>캐스팅:</span> ${entry.casting || '미정'}</div>
+              <div class="entry-row"><span>이벤트:</span> ${entry.event || '없음'}</div>
+              ${stampInfo}
+              ${stampCountInfo}
+              ${commentInfo}
+              <div class="entry-actions">
+                ${attachmentButton}
+                <button onclick="editWatchEntry(${entry.id})">수정</button>
+                <button onclick="deleteWatchEntry(${entry.id})">삭제</button>
+              </div>
+            </div>
+          </details>
+        </div>
+      `;
+    });
+  }
+
+  // 실제 관극 기록 표시
+  if (watchedEntries.length > 0) {
+    html += '<h2 style="font-size:18px; margin:30px 0 10px; color:#4CAF50;">🎭 관극 기록</h2>';
+
+    // 공연명으로 그룹화
+    const groups = {};
+    watchedEntries.forEach(entry => {
+      const baseTitle = getPerformanceBaseTitle(entry.title);
+      if (!groups[baseTitle]) {
+        groups[baseTitle] = [];
+      }
+      groups[baseTitle].push(entry);
+    });
+
+    // 그룹별 렌더링
+    for (const baseTitle in groups) {
+      const group = groups[baseTitle];
+      
+      if (group.length === 1) {
+        // 단일 항목은 직접 렌더링
+        const entry = group[0];
+        const stampInfo = entry.stampBoard ? `<div class="entry-row"><span>도장판:</span> ${entry.stampBoard}</div>` : '';
+        const stampCountInfo = `<div class="entry-row"><span>도장 갯수:</span> ${entry.stampCount || 0}</div>`;
+        const commentInfo = entry.comment ? `<div class="entry-row"><span>코멘트:</span> ${entry.comment}</div>` : '';
+        html += `
+          <div class="card entry-card">
+            <details>
+              <summary>${entry.title} · ${entry.type} · ${entry.date || '날짜 없음'} ${entry.time || ''}</summary>
+              <div class="details-body">
+                <div class="entry-row"><span>캐스팅:</span> ${entry.casting || '없음'}</div>
+                <div class="entry-row"><span>이벤트:</span> ${entry.event || '없음'}</div>
+                ${stampInfo}
+                ${stampCountInfo}
+                ${commentInfo}
+                <div class="entry-actions">
+                  ${entry.attachmentData ? `<button type="button" style="background:#ff9f43;" onclick="openAttachmentModal(${entry.id})">내역서</button>` : ''}
+                  <button onclick="editWatchEntry(${entry.id})">수정</button>
+                  <button onclick="deleteWatchEntry(${entry.id})">삭제</button>
+                </div>
+              </div>
+            </details>
+          </div>
+        `;
+      } else {
+        // 여러 항목은 그룹으로 묶기
+        html += `
+          <div class="card entry-card">
+            <details>
+              <summary>${baseTitle} (${group.length}개)</summary>
+              <div class="details-body">`;
+        
+        group.forEach(entry => {
+          const stampInfo = entry.stampBoard ? `<div class="entry-row"><span>도장판:</span> ${entry.stampBoard}</div>` : '';
+          const stampCountInfo = `<div class="entry-row"><span>도장 갯수:</span> ${entry.stampCount || 0}</div>`;
+          const commentInfo = entry.comment ? `<div class="entry-row"><span>코멘트:</span> ${entry.comment}</div>` : '';
+          html += `
+                <div style="border-bottom: 1px solid #f0f0f0; padding-bottom: 12px; margin-bottom: 12px;">
+                  <div class="entry-row"><strong>${entry.title}</strong> · ${entry.type} · ${entry.date || '날짜 없음'} ${entry.time || ''}</div>
+                  <div class="entry-row"><span>캐스팅:</span> ${entry.casting || '없음'}</div>
+                  <div class="entry-row"><span>이벤트:</span> ${entry.event || '없음'}</div>
+                  ${stampInfo}
+                  ${stampCountInfo}
+                  ${commentInfo}
+                  <div class="entry-actions">
+                    ${entry.attachmentData ? `<button type="button" style="background:#ff9f43;" onclick="openAttachmentModal(${entry.id})">내역서</button>` : ''}
+                    <button onclick="editWatchEntry(${entry.id})">수정</button>
+                    <button onclick="deleteWatchEntry(${entry.id})">삭제</button>
+                  </div>
+                </div>
+              `;
+        });
+        
+        html += `
+              </div>
+            </details>
+          </div>
+        `;
+      }
+    }
+  }
+
+  container.innerHTML = html;
+}
+
+(function init() {
+  const hidden = document.createElement('input');
+  hidden.type = 'hidden';
+  hidden.id = 'selectedBoard';
+  document.body.appendChild(hidden);
+  renderWatchList();
+})();
+</script>
+</body>
+</html>

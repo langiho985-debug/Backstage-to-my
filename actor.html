@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎭 배우</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: sans-serif; background: #f5f5f5; padding: 15px; padding-bottom: 80px; }
+h1 { margin: 10px 0; font-size: 22px; }
+.card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 15px; padding: 16px; }
+.actor-card { margin-bottom: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px; }
+.actor-name { font-weight: bold; font-size: 16px; color: #ff6b6b; margin-bottom: 8px; }
+.actor-stats { font-size: 14px; color: #666; }
+.show-stats { margin-top: 8px; padding: 8px; background: white; border-radius: 6px; font-size: 13px; }
+.rank-badge { display: inline-block; padding: 4px 8px; background: #ff6b6b; color: white; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 8px; }
+.nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; align-items: center; height: 60px; background: white; border-top: 1px solid #ddd; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); z-index: 100; }
+.nav-item { flex: 1; text-align: center; text-decoration: none; padding: 10px; font-size: 10px; color: #666; transition: background .2s; }
+.nav-item.active { color: #ff6b6b; font-weight: bold; border-bottom: 3px solid #ff6b6b; }
+.nav-item:hover { background: #fafafa; }
+@media (max-width: 480px) { h1 { font-size: 20px; } }
+</style>
+</head>
+<body>
+<h1>🎭 배우</h1>
+<div id="actorStats"></div>
+
+<div class="nav-bar">
+  <a href="schedule.html" class="nav-item">📅 관극 일정</a>
+  <a href="watch.html" class="nav-item">🎬 관극</a>
+  <a href="entry.html" class="nav-item">🎭 도장판</a>
+  <span class="nav-item active">👤 배우</span>
+  <a href="settings.html" class="nav-item">⚙️ 설정</a>
+</div>
+
+<script>
+function getWatchData() {
+  return JSON.parse(localStorage.getItem('watchData')) || [];
+}
+
+function getActorStats() {
+  const watchData = getWatchData();
+  const actorStats = {};
+
+  watchData.forEach(entry => {
+    // 예정된 관극은 배우 통계에서 제외
+    if (entry.status === 'planned') return;
+    
+    if (entry.casting) {
+      const actors = entry.casting.split(',').map(actor => actor.trim()).filter(actor => actor);
+      actors.forEach(actor => {
+        if (!actorStats[actor]) {
+          actorStats[actor] = { totalCount: 0, shows: {} };
+        }
+        actorStats[actor].totalCount++;
+
+        const showKey = entry.title;
+        if (!actorStats[actor].shows[showKey]) {
+          actorStats[actor].shows[showKey] = 0;
+        }
+        actorStats[actor].shows[showKey]++;
+      });
+    }
+  });
+
+  return actorStats;
+}
+
+function renderActorStats() {
+  const actorStats = getActorStats();
+  const container = document.getElementById('actorStats');
+
+  // 순위별로 정렬
+  const sortedActors = Object.entries(actorStats)
+    .sort(([,a], [,b]) => b.totalCount - a.totalCount);
+
+  if (sortedActors.length === 0) {
+    container.innerHTML = '<div class="card"><p>아직 배우 데이터가 없습니다.</p></div>';
+    return;
+  }
+
+  let html = '';
+  sortedActors.forEach(([actor, stats], index) => {
+    const rank = index + 1;
+    const showStats = Object.entries(stats.shows)
+      .map(([show, count]) => `<div class="show-stats">${show}: ${count}회</div>`)
+      .join('');
+
+    html += `
+      <div class="card actor-card">
+        <div class="actor-name">
+          <span class="rank-badge">${rank}위</span>${actor}
+        </div>
+        <div class="actor-stats">
+          총 관극 횟수: ${stats.totalCount}회
+          ${showStats}
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+(function init() {
+  renderActorStats();
+})();
+</script>
+</body>
+</html>
