@@ -275,7 +275,7 @@ function updateMatchingStampBoards() {
   html += matches.map(key => {
     const board = stampData[key];
     const currentCount = getBoardCurrentCount(board);
-    return `<div class="match-item" id="match-${encodeURIComponent(key)}" onclick="selectStampBoard('${encodeURIComponent(key)}')"><div>${key} (최종 ${board.maxCount} / 현재 ${currentCount})</div><button type="button">선택</button></div>`;
+    return `<div class="match-item" id="match-${encodeURIComponent(key)}" onclick="selectStampBoard('${encodeURIComponent(key)}')"><div>${key} (최종 ${board.maxCount} / 현재 ${currentCount})</div><button type="button" onclick="selectStampBoard('${encodeURIComponent(key)}')">선택</button></div>`;
   }).join('');
 
   matchSection.style.display = 'block';
