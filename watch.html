@@ -108,7 +108,7 @@ input:focus, select:focus { outline: none; border-color: #ff6b6b; box-shadow: 0 
 
     <div id="matchSection" class="match-list" style="display:none;"></div>
     <div id="selectedBoardInfo" class="small-note" style="display:none;"></div>
-    <button type="button" onclick="createStampBoard()" style="background:#f29e2e;">➕ 도장판 생성</button>
+    <button type="button" onclick="openCreateStampModal()" style="background:#f29e2e;">➕ 도장판 생성</button>
     <div id="formTitle" class="form-title" style="display:none;"></div>
 
     <button onclick="saveWatchEntry()">관극 기록 저장</button>
@@ -126,11 +126,48 @@ input:focus, select:focus { outline: none; border-color: #ff6b6b; box-shadow: 0 
   </div>
 </div>
 
+<div id="stampCreateModal" class="modal">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeCreateStampModal()">닫기</button>
+    <h3>도장판 생성</h3>
+    <input id="stampCreateTitle" placeholder="공연명" oninput="fillCreateStampForm()" />
+    <input id="stampCreateDate" type="date" placeholder="생성 날짜" />
+    <div style="font-weight:bold; margin-top:10px; font-size:13px; color:#4CAF50;">중간 증정 1번</div>
+    <div style="display:flex; gap:10px;">
+      <input id="stampCreateMidCount1" placeholder="중간증정 도장 수" style="flex:1;" />
+      <input id="stampCreateMidReward1Item" placeholder="증정 내용" style="flex:2;" />
+      <input id="stampCreateMidReward1Count" placeholder="증정 갯수" type="number" style="flex:1;" />
+    </div>
+    <div style="font-weight:bold; margin-top:10px; font-size:13px; color:#4CAF50;">중간 증정 2번</div>
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <input id="stampCreateMidCount2" placeholder="중간증정 도장 수" style="flex:1;" />
+      <input id="stampCreateMidReward2Item" placeholder="증정 내용" style="flex:2;" />
+      <input id="stampCreateMidReward2Count" placeholder="증정 갯수" type="number" style="flex:1;" />
+    </div>
+    <div style="display:flex; gap:10px;">
+      <input id="stampCreateMaxCount" placeholder="최종 도장 수" type="number" style="flex:1;" />
+    </div>
+    <div style="font-weight:bold; margin-top:10px; font-size:13px; color:#ff6b6b;">최종 증정 1번</div>
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <input id="stampCreateMaxReward1Item" placeholder="증정품" style="flex:2;" />
+      <input id="stampCreateMaxReward1Count" placeholder="갯수" type="number" style="flex:1;" />
+    </div>
+    <div style="font-weight:bold; margin-top:10px; font-size:13px; color:#ff6b6b;">최종 증정 2번</div>
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <input id="stampCreateMaxReward2Item" placeholder="증정품" style="flex:2;" />
+      <input id="stampCreateMaxReward2Count" placeholder="갯수" type="number" style="flex:1;" />
+    </div>
+    <button onclick="saveNewStampBoard()" style="background:#ff6b6b; color:white; width:100%; padding:12px; border:none; border-radius:8px;">생성</button>
+    <button onclick="closeCreateStampModal()" style="background:#ddd; color:#333; width:100%; padding:12px; border:none; border-radius:8px; margin-top:8px;">취소</button>
+  </div>
+</div>
+
 <div class="nav-bar">
   <a href="index.html" class="nav-item">📅 관극 일정</a>
   <span class="nav-item active">🎬 관극</span>
   <a href="entry.html" class="nav-item">🎭 도장판</a>
   <a href="actor.html" class="nav-item">👤 배우</a>
+  <a href="settings.html" class="nav-item">⚙️ 설정</a>
 </div>
 
 <script>
@@ -199,28 +236,101 @@ function getUniqueBoardTitle(title, stampData) {
 function createStampBoard() {
   const title = document.getElementById('perfTitle').value.trim();
   if (!title) return alert('공연명을 입력해주세요. 먼저 공연명을 입력한 뒤 도장판을 생성하세요.');
+  openCreateStampModal();
+}
+
+function openCreateStampModal() {
+  const title = document.getElementById('perfTitle').value.trim();
+  const modal = document.getElementById('stampCreateModal');
+  const stampData = getStampData();
+  const existing = stampData[title];
+
+  document.getElementById('stampCreateTitle').value = title;
+  document.getElementById('stampCreateDate').value = document.getElementById('perfDate').value || '';
+
+  if (existing) {
+    document.getElementById('stampCreateDate').value = existing.date || document.getElementById('perfDate').value || '';
+    document.getElementById('stampCreateMidCount1').value = existing.midRewards?.[0]?.count || 0;
+    document.getElementById('stampCreateMidReward1Item').value = existing.midRewards?.[0]?.item || '';
+    document.getElementById('stampCreateMidReward1Count').value = existing.midRewards?.[0]?.rewardCount || 0;
+    document.getElementById('stampCreateMidCount2').value = existing.midRewards?.[1]?.count || 0;
+    document.getElementById('stampCreateMidReward2Item').value = existing.midRewards?.[1]?.item || '';
+    document.getElementById('stampCreateMidReward2Count').value = existing.midRewards?.[1]?.rewardCount || 0;
+    document.getElementById('stampCreateMaxCount').value = existing.maxCount || '';
+    document.getElementById('stampCreateMaxReward1Item').value = existing.maxReward?.[0]?.item || '';
+    document.getElementById('stampCreateMaxReward1Count').value = existing.maxReward?.[0]?.count || 0;
+    document.getElementById('stampCreateMaxReward2Item').value = existing.maxReward?.[1]?.item || '';
+    document.getElementById('stampCreateMaxReward2Count').value = existing.maxReward?.[1]?.count || 0;
+  } else {
+    document.getElementById('stampCreateMidCount1').value = '';
+    document.getElementById('stampCreateMidReward1Item').value = '';
+    document.getElementById('stampCreateMidReward1Count').value = '';
+    document.getElementById('stampCreateMidCount2').value = '';
+    document.getElementById('stampCreateMidReward2Item').value = '';
+    document.getElementById('stampCreateMidReward2Count').value = '';
+    document.getElementById('stampCreateMaxCount').value = '';
+    document.getElementById('stampCreateMaxReward1Item').value = '';
+    document.getElementById('stampCreateMaxReward1Count').value = '';
+    document.getElementById('stampCreateMaxReward2Item').value = '';
+    document.getElementById('stampCreateMaxReward2Count').value = '';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function fillCreateStampForm() {
+  const title = document.getElementById('stampCreateTitle').value.trim();
+  if (!title) return;
+  const stampData = getStampData();
+  const existing = stampData[title];
+  if (!existing) return;
+
+  document.getElementById('stampCreateDate').value = existing.date || '';
+  document.getElementById('stampCreateMidCount1').value = existing.midRewards?.[0]?.count || 0;
+  document.getElementById('stampCreateMidReward1Item').value = existing.midRewards?.[0]?.item || '';
+  document.getElementById('stampCreateMidReward1Count').value = existing.midRewards?.[0]?.rewardCount || 0;
+  document.getElementById('stampCreateMidCount2').value = existing.midRewards?.[1]?.count || 0;
+  document.getElementById('stampCreateMidReward2Item').value = existing.midRewards?.[1]?.item || '';
+  document.getElementById('stampCreateMidReward2Count').value = existing.midRewards?.[1]?.rewardCount || 0;
+  document.getElementById('stampCreateMaxCount').value = existing.maxCount || '';
+  document.getElementById('stampCreateMaxReward1Item').value = existing.maxReward?.[0]?.item || '';
+  document.getElementById('stampCreateMaxReward1Count').value = existing.maxReward?.[0]?.count || 0;
+  document.getElementById('stampCreateMaxReward2Item').value = existing.maxReward?.[1]?.item || '';
+  document.getElementById('stampCreateMaxReward2Count').value = existing.maxReward?.[1]?.count || 0;
+}
+
+function saveNewStampBoard() {
+  const title = document.getElementById('stampCreateTitle').value.trim();
+  if (!title) return alert('공연명을 입력해주세요.');
 
   const stampData = getStampData();
   const newTitle = getUniqueBoardTitle(title, stampData);
-  const maxCountInput = prompt('최종 도장 수를 입력하세요.', '10');
-  const maxCount = parseInt(maxCountInput, 10);
+  const maxCount = parseInt(document.getElementById('stampCreateMaxCount').value, 10) || 0;
   if (!maxCount || maxCount <= 0) return alert('최종 도장 수는 1 이상의 숫자여야 합니다.');
 
   stampData[newTitle] = {
-    date: document.getElementById('perfDate').value || '',
+    date: document.getElementById('stampCreateDate').value || '',
     midRewards: [
-      { count: 0, item: '', rewardCount: 0 },
-      { count: 0, item: '', rewardCount: 0 }
+      { count: parseInt(document.getElementById('stampCreateMidCount1').value, 10) || 0, item: document.getElementById('stampCreateMidReward1Item').value.trim(), rewardCount: parseInt(document.getElementById('stampCreateMidReward1Count').value, 10) || 0 },
+      { count: parseInt(document.getElementById('stampCreateMidCount2').value, 10) || 0, item: document.getElementById('stampCreateMidReward2Item').value.trim(), rewardCount: parseInt(document.getElementById('stampCreateMidReward2Count').value, 10) || 0 }
     ],
     maxCount,
-    maxReward: [{ item: '', count: 0 }, { item: '', count: 0 }],
+    maxReward: [
+      { item: document.getElementById('stampCreateMaxReward1Item').value.trim(), count: parseInt(document.getElementById('stampCreateMaxReward1Count').value, 10) || 0 },
+      { item: document.getElementById('stampCreateMaxReward2Item').value.trim(), count: parseInt(document.getElementById('stampCreateMaxReward2Count').value, 10) || 0 }
+    ],
     stamps: []
   };
 
   saveStampData(stampData);
   selectStampBoard(encodeURIComponent(newTitle));
   updateMatchingStampBoards();
+  closeCreateStampModal();
   alert(`도장판 "${newTitle}"이(가) 생성되었습니다.`);
+}
+
+function closeCreateStampModal() {
+  document.getElementById('stampCreateModal').style.display = 'none';
 }
 
 function getBaseTitle(title) {
@@ -318,7 +428,7 @@ async function saveWatchEntry() {
   const title = document.getElementById('perfTitle').value.trim();
   if (!title) return alert('공연명을 입력해주세요.');
 
-  const selectedBoard = document.getElementById('selectedBoard')?.value || '';
+  let selectedBoard = document.getElementById('selectedBoard')?.value || '';
   const stampCount = parseInt(document.getElementById('perfStampCount').value) || 0;
   const comment = document.getElementById('perfComment').value.trim();
 
@@ -354,14 +464,17 @@ async function saveWatchEntry() {
   const stampData = getStampData();
 
   function removeLinkedStamp(boardKey, syncId) {
-    if (!boardKey || !stampData[boardKey] || !Array.isArray(stampData[boardKey].stamps)) return;
-    const stamps = stampData[boardKey].stamps;
-    const removeIndex = stamps.findIndex(s => s.syncId === syncId || s.comment === '관극 기록 연동');
-    if (removeIndex !== -1) {
-      stamps.splice(removeIndex, 1);
-      stampData[boardKey].stamps = stamps;
-      saveStampData(stampData);
-    }
+    if (!syncId) return;
+    let changed = false;
+    Object.keys(stampData).forEach(key => {
+      if (!stampData[key] || !Array.isArray(stampData[key].stamps)) return;
+      const filtered = stampData[key].stamps.filter(s => s.syncId !== syncId);
+      if (filtered.length !== stampData[key].stamps.length) {
+        stampData[key].stamps = filtered;
+        changed = true;
+      }
+    });
+    if (changed) saveStampData(stampData);
   }
 
   function ensureStampBoard(boardKey) {
@@ -388,31 +501,48 @@ async function saveWatchEntry() {
     ensureStampBoard(selectedBoard);
     let board = stampData[selectedBoard];
     const currentCount = getBoardCurrentCount(board);
-    if (currentCount + stampCount > board.maxCount) {
-      const newBoardKey = createNextStampBoard(stampData, selectedBoard, entry.date);
-      if (newBoardKey) {
-        selectedBoard = newBoardKey;
-        entry.stampBoard = selectedBoard;
-        selectStampBoard(encodeURIComponent(newBoardKey));
-      }
-      board = stampData[selectedBoard];
-      ensureStampBoard(selectedBoard);
-    }
-    board.stamps = board.stamps || [];
-    const existingIndex = board.stamps.findIndex(s => s.syncId === entry.id);
-    const stampEntry = {
+    const overflow = Math.max(0, currentCount + stampCount - board.maxCount);
+    const fitCount = stampCount - overflow;
+    const stampEntryBase = {
       syncId: entry.id,
       date: entry.date || '',
       round: entry.time || '',
-      count: stampCount,
       comment: comment || '관극 기록 연동',
       status: entry.status || 'watched'
     };
-    if (existingIndex !== -1) {
-      board.stamps[existingIndex] = stampEntry;
+
+    board.stamps = board.stamps || [];
+    if (fitCount > 0) {
+      const existingIndex = board.stamps.findIndex(s => s.syncId === entry.id);
+      const boardStamp = { ...stampEntryBase, count: fitCount };
+      if (existingIndex !== -1) {
+        board.stamps[existingIndex] = boardStamp;
+      } else {
+        board.stamps.push(boardStamp);
+      }
     } else {
-      board.stamps.push(stampEntry);
+      board.stamps = board.stamps.filter(s => s.syncId !== entry.id);
     }
+
+    if (overflow > 0) {
+      const newBoardKey = createNextStampBoard(stampData, selectedBoard, entry.date);
+      if (newBoardKey) {
+        const overflowBoard = stampData[newBoardKey];
+        overflowBoard.stamps = overflowBoard.stamps || [];
+        const existingOverflowIndex = overflowBoard.stamps.findIndex(s => s.syncId === entry.id);
+        const overflowStamp = { ...stampEntryBase, count: overflow };
+        if (existingOverflowIndex !== -1) {
+          overflowBoard.stamps[existingOverflowIndex] = overflowStamp;
+        } else {
+          overflowBoard.stamps.push(overflowStamp);
+        }
+        if (fitCount === 0) {
+          entry.stampBoard = newBoardKey;
+          selectStampBoard(encodeURIComponent(newBoardKey));
+        }
+      }
+    }
+
     saveStampData(stampData);
   } else if (previousEntry && previousEntry.stampBoard && (!selectedBoard || stampCount === 0)) {
     removeLinkedStamp(previousEntry.stampBoard, previousEntry.id);
@@ -511,17 +641,16 @@ function deleteWatchEntry(id) {
 
   const watchData = getWatchData();
   const entry = watchData.find(e => e.id === id);
-  if (entry && entry.stampBoard) {
+  if (entry) {
     const stampData = getStampData();
-    const board = stampData[entry.stampBoard];
-    if (board && Array.isArray(board.stamps)) {
-      const idx = board.stamps.findIndex(s => s.syncId === entry.id || s.comment === '관극 기록 연동');
-      if (idx !== -1) {
-        board.stamps.splice(idx, 1);
-        stampData[entry.stampBoard] = board;
-        localStorage.setItem('stampData', JSON.stringify(stampData));
+    Object.keys(stampData).forEach(key => {
+      if (!stampData[key] || !Array.isArray(stampData[key].stamps)) return;
+      const filtered = stampData[key].stamps.filter(s => s.syncId !== entry.id);
+      if (filtered.length !== stampData[key].stamps.length) {
+        stampData[key].stamps = filtered;
       }
-    }
+    });
+    localStorage.setItem('stampData', JSON.stringify(stampData));
   }
 
   const idx = watchData.findIndex(e => e.id === id);

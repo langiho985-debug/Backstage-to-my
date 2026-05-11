@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚙️ 설정</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: sans-serif; background: white; padding: 15px; padding-bottom: 80px; }
+h1 { margin: 10px 0; font-size: 22px; }
+.card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 15px; padding: 16px; }
+.nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; align-items: center; height: 60px; background: white; border-top: 1px solid #ddd; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); z-index: 100; }
+.nav-item { flex: 1; text-align: center; text-decoration: none; padding: 10px; font-size: 11px; color: #666; transition: background .2s; }
+.nav-item.active { color: #ff6b6b; font-weight: bold; border-bottom: 3px solid #ff6b6b; }
+.nav-item:hover { background: #fafafa; }
+</style>
+</head>
+<body>
+<h1>⚙️ 설정</h1>
+<div class="card">
+  <h3>데이터 관리</h3>
+  <p>앱 데이터를 JSON 파일로 내보내거나 가져올 수 있습니다.</p>
+  <button onclick="exportData()">📤 데이터 내보내기 (JSON)</button>
+  <br><br>
+  <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
+  <button onclick="document.getElementById('importFile').click()">📥 데이터 가져오기 (JSON)</button>
+  <div id="importStatus" style="margin-top:10px; color:#666;"></div>
+</div>
+<div class="nav-bar">
+  <a href="index.html" class="nav-item">📅 관극 일정</a>
+  <a href="watch.html" class="nav-item">🎬 관극</a>
+  <a href="entry.html" class="nav-item">🎭 도장판</a>
+  <a href="actor.html" class="nav-item">👤 배우</a>
+  <span class="nav-item active">⚙️ 설정</span>
+</div>
+
+<script>
+function exportData() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    try {
+      data[key] = JSON.parse(localStorage.getItem(key));
+    } catch (e) {
+      data[key] = localStorage.getItem(key);
+    }
+  }
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `app-data-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('데이터가 JSON 파일로 내보내졌습니다.');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      const status = document.getElementById('importStatus');
+      status.textContent = '데이터를 가져오는 중...';
+      
+      // 병합 옵션 묻기
+      const merge = confirm('기존 데이터를 유지하고 새 데이터를 추가하시겠습니까? (취소하면 기존 데이터를 덮어씁니다.)');
+      
+      if (merge) {
+        // 병합
+        for (const key in data) {
+          if (localStorage.getItem(key)) {
+            // 기존 데이터가 있으면 병합
+            try {
+              const existing = JSON.parse(localStorage.getItem(key));
+              const imported = data[key];
+              if (Array.isArray(existing) && Array.isArray(imported)) {
+                // 배열 병합 (중복 제거)
+                const merged = [...existing];
+                imported.forEach(item => {
+                  if (!merged.some(e => JSON.stringify(e) === JSON.stringify(item))) {
+                    merged.push(item);
+                  }
+                });
+                localStorage.setItem(key, JSON.stringify(merged));
+              } else if (typeof existing === 'object' && typeof imported === 'object') {
+                // 객체 병합
+                const merged = { ...existing, ...imported };
+                localStorage.setItem(key, JSON.stringify(merged));
+              } else {
+                // 다른 타입은 덮어쓰기
+                localStorage.setItem(key, JSON.stringify(imported));
+              }
+            } catch (e) {
+              localStorage.setItem(key, JSON.stringify(data[key]));
+            }
+          } else {
+            localStorage.setItem(key, JSON.stringify(data[key]));
+          }
+        }
+        status.textContent = '데이터가 성공적으로 병합되었습니다.';
+      } else {
+        // 덮어쓰기
+        for (const key in data) {
+          localStorage.setItem(key, JSON.stringify(data[key]));
+        }
+        status.textContent = '데이터가 성공적으로 덮어쓰기되었습니다.';
+      }
+      
+      alert('데이터 가져오기가 완료되었습니다. 페이지를 새로고침하세요.');
+    } catch (error) {
+      document.getElementById('importStatus').textContent = 'JSON 파일 파싱 오류: ' + error.message;
+      alert('JSON 파일을 읽는 중 오류가 발생했습니다.');
+    }
+  };
+  reader.readAsText(file);
+}
+</script>
+</body>
+</html>
