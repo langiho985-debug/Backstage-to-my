@@ -108,6 +108,12 @@ input:focus, select:focus { outline: none; border-color: #ff6b6b; box-shadow: 0 
 
     <div id="matchSection" class="match-list" style="display:none;"></div>
     <div id="selectedBoardInfo" class="small-note" style="display:none;"></div>
+
+    <label for="usedCoupon">사용한 할인권</label>
+    <select id="usedCoupon">
+      <option value="">없음</option>
+    </select>
+
     <button type="button" onclick="openCreateStampModal()" style="background:#f29e2e;">➕ 도장판 생성</button>
     <div id="formTitle" class="form-title" style="display:none;"></div>
 
@@ -219,6 +225,14 @@ function getWatchData() {
 
 function saveWatchData(data) {
   localStorage.setItem('watchData', JSON.stringify(data));
+}
+
+function getCouponData() {
+  return JSON.parse(localStorage.getItem('couponData')) || {};
+}
+
+function saveCouponData(data) {
+  localStorage.setItem('couponData', JSON.stringify(data));
 }
 
 function saveStampData(data) {
@@ -333,9 +347,11 @@ function closeCreateStampModal() {
   document.getElementById('stampCreateModal').style.display = 'none';
 }
 
-function getBaseTitle(title) {
-  let match = title.match(/^(.*) \((\d+)\)$/);
-  return match ? match[1] : title;
+function getCouponDisplay(couponId) {
+  if (!couponId) return '';
+  const couponData = getCouponData();
+  const coupon = couponData[couponId];
+  return coupon ? `${coupon.item} (${coupon.count}개)` : couponId;
 }
 
 function getBoardCurrentCount(board) {
@@ -403,6 +419,24 @@ function selectStampBoard(keyEncoded) {
   }
   document.getElementById('selectedBoard').value = key;
   updateSelectedBoardUI();
+  updateCouponOptions();
+}
+
+function updateCouponOptions() {
+  const selectedBoard = document.getElementById('selectedBoard')?.value || '';
+  const couponSelect = document.getElementById('usedCoupon');
+  couponSelect.innerHTML = '<option value="">없음</option>';
+  if (!selectedBoard) return;
+  const couponData = getCouponData();
+  Object.keys(couponData).forEach(id => {
+    const coupon = couponData[id];
+    if (coupon.board === selectedBoard && !coupon.used) {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = `${coupon.item} (${coupon.count}개)`;
+      couponSelect.appendChild(option);
+    }
+  });
 }
 
 function updateSelectedBoardUI() {
@@ -458,6 +492,7 @@ async function saveWatchEntry() {
     comment,
     attachmentName,
     attachmentData,
+    usedCoupon: document.getElementById('usedCoupon').value,
     createdAt: previousEntry ? previousEntry.createdAt : new Date().toISOString()
   };
 
@@ -543,9 +578,35 @@ async function saveWatchEntry() {
       }
     }
 
+    // 도장판이 가득 찼는지 체크하고 쿠폰 생성
+    const finalBoard = stampData[entry.stampBoard || selectedBoard];
+    if (finalBoard && getBoardCurrentCount(finalBoard) >= finalBoard.maxCount) {
+      const couponData = getCouponData();
+      const couponId = `${entry.stampBoard || selectedBoard}_${entry.id}`;
+      if (!couponData[couponId]) {
+        couponData[couponId] = {
+          item: finalBoard.maxReward.map(r => r.item).filter(i => i).join(', ') || '할인권',
+          count: finalBoard.maxReward.reduce((sum, r) => sum + (r.count || 0), 0) || 1,
+          board: entry.stampBoard || selectedBoard,
+          used: false
+        };
+        saveCouponData(couponData);
+      }
+    }
+
     saveStampData(stampData);
   } else if (previousEntry && previousEntry.stampBoard && (!selectedBoard || stampCount === 0)) {
     removeLinkedStamp(previousEntry.stampBoard, previousEntry.id);
+  }
+
+  // 쿠폰 사용 처리
+  const usedCouponId = document.getElementById('usedCoupon').value;
+  if (usedCouponId) {
+    const couponData = getCouponData();
+    if (couponData[usedCouponId]) {
+      couponData[usedCouponId].used = true;
+      saveCouponData(couponData);
+    }
   }
 
   if (editingEntryId) {
@@ -578,6 +639,7 @@ function clearWatchForm() {
   document.getElementById('perfEvent').value = '';
   document.getElementById('perfStampCount').value = '';
   document.getElementById('perfComment').value = '';
+  document.getElementById('usedCoupon').value = '';
   document.getElementById('perfAttachment').value = '';
   currentAttachment = null;
   document.getElementById('attachmentNote').style.display = 'none';
@@ -613,6 +675,7 @@ function editWatchEntry(id) {
   document.querySelector(`input[name="watchStatus"][value="${entry.status || 'planned'}"]`).checked = true;
   document.getElementById('perfStampCount').value = entry.stampCount || 0;
   document.getElementById('perfComment').value = entry.comment;
+  document.getElementById('usedCoupon').value = entry.usedCoupon || '';
   document.getElementById('perfAttachment').value = '';
   currentAttachment = null;
 
@@ -715,8 +778,7 @@ function renderWatchList() {
               <div class="entry-row"><span>이벤트:</span> ${entry.event || '없음'}</div>
               ${stampInfo}
               ${stampCountInfo}
-              ${commentInfo}
-              <div class="entry-actions">
+              ${commentInfo}              ${usedCouponInfo}              <div class="entry-actions">
                 ${attachmentButton}
                 <button onclick="editWatchEntry(${entry.id})">수정</button>
                 <button onclick="deleteWatchEntry(${entry.id})">삭제</button>
@@ -752,6 +814,7 @@ function renderWatchList() {
         const stampInfo = entry.stampBoard ? `<div class="entry-row"><span>도장판:</span> ${entry.stampBoard}</div>` : '';
         const stampCountInfo = `<div class="entry-row"><span>도장 갯수:</span> ${entry.stampCount || 0}</div>`;
         const commentInfo = entry.comment ? `<div class="entry-row"><span>코멘트:</span> ${entry.comment}</div>` : '';
+        const usedCouponInfo = entry.usedCoupon ? `<div class="entry-row"><span>사용한 할인권:</span> ${getCouponDisplay(entry.usedCoupon)}</div>` : '';
         html += `
           <div class="card entry-card">
             <details>
@@ -783,6 +846,7 @@ function renderWatchList() {
           const stampInfo = entry.stampBoard ? `<div class="entry-row"><span>도장판:</span> ${entry.stampBoard}</div>` : '';
           const stampCountInfo = `<div class="entry-row"><span>도장 갯수:</span> ${entry.stampCount || 0}</div>`;
           const commentInfo = entry.comment ? `<div class="entry-row"><span>코멘트:</span> ${entry.comment}</div>` : '';
+          const usedCouponInfo = entry.usedCoupon ? `<div class="entry-row"><span>사용한 할인권:</span> ${getCouponDisplay(entry.usedCoupon)}</div>` : '';
           html += `
                 <div style="border-bottom: 1px solid #f0f0f0; padding-bottom: 12px; margin-bottom: 12px;">
                   <div class="entry-row"><strong>${entry.title}</strong> · ${entry.type} · ${entry.date || '날짜 없음'} ${entry.time || ''}</div>
@@ -791,6 +855,7 @@ function renderWatchList() {
                   ${stampInfo}
                   ${stampCountInfo}
                   ${commentInfo}
+                  ${usedCouponInfo}
                   <div class="entry-actions">
                     ${entry.attachmentData ? `<button type="button" style="background:#ff9f43;" onclick="openAttachmentModal(${entry.id})">내역서</button>` : ''}
                     <button onclick="editWatchEntry(${entry.id})">수정</button>
